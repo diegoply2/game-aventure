@@ -8,7 +8,7 @@ public class MusicManager : MonoBehaviour
     private float maxTrackTime = 180f; // 3 minutes
     private float nextTrackTime;
     [SerializeField] private float initialFadeInDuration = 20f; // Durée du fade-in au démarrage
-    private float maxVolume = 0.40f; // Volume maximum de la musique
+    [SerializeField] private float maxVolume = 0.60f; // Volume maximum de la musique
 
     void Start()
     {
