@@ -75,61 +75,67 @@ public class EnemyController : MonoBehaviour
     }
 
     void Update()
+{
+    if (isDead)
     {
-        if (isDead)
-        {
-            return; // Ne fais rien si l'ennemi est mort
-        }
+        return; // Ne fais rien si l'ennemi est mort
+    }
 
-        if (enemyVision != null && enemyVision.playerInSight)
+    // Si l'ennemi détecte le joueur, commence la poursuite
+    if (enemyVision != null && enemyVision.playerInSight)
+    {
+        if (!isPursuing)
         {
-            if (!isPursuing)
-            {
-                StartPursuing();
-            }
-            pursueRemainingTime = pursueDuration;  // Réinitialise le timer de poursuite dès que le joueur est vu
+            StartPursuing();
         }
-        else
+        pursueRemainingTime = pursueDuration;  // Réinitialise le timer de poursuite dès que le joueur est vu
+    }
+    else
+    {
+        // Si le joueur n'est plus en vue, réduire le temps de poursuite
+        if (isPursuing && pursueRemainingTime > 0f)
         {
-            if (isPursuing && pursueRemainingTime > 0f)
+            pursueRemainingTime -= Time.deltaTime;
+            if (pursueRemainingTime <= 0)
             {
-                pursueRemainingTime -= Time.deltaTime;
-                if (pursueRemainingTime <= 0)
-                {
-                    StopPursuing();
-                }
-            }
-
-            if (!enemyVision.playerInSight && pursueRemainingTime <= 0f && pursuitTimerAfterLost > 0f)
-            {
-                // Continue de poursuivre pendant un certain temps même après la perte du joueur
-                pursuitTimerAfterLost -= Time.deltaTime;
-                MoveTowardsPlayer();
+                StopPursuing();
             }
         }
 
-        if (isPursuing || pursuitTimerAfterLost > 0f)
+        // Si l'ennemi a perdu de vue le joueur, il continue de poursuivre un moment
+        if (!enemyVision.playerInSight && pursueRemainingTime <= 0f && pursuitTimerAfterLost > 0f)
         {
-            MoveTowardsPlayer(); // Si en poursuite, se diriger vers le joueur
-        }
-        else
-        {
-            randomTimer += Time.deltaTime;
-            if (randomTimer >= randomChangeInterval && !isPaused)
-            {
-                ChooseNewRandomDirection();
-                randomTimer = 0f;
-            }
-
-            HandleRandomMovement();
-        }
-
-        // Si l'ennemi est à portée du joueur, lancer l'attaque
-        if (Vector3.Distance(transform.position, enemyVision.player.position) <= 2f)
-        {
-            enemyAttack.Update();  // Appel de l'attaque du script EnemyAttack
+            // Continue de poursuivre pendant un certain temps même après la perte du joueur
+            pursuitTimerAfterLost -= Time.deltaTime;
+            MoveTowardsPlayer();
         }
     }
+
+    // Si l'ennemi est en mode poursuite ou continue de se déplacer après avoir perdu le joueur
+    if (isPursuing || pursuitTimerAfterLost > 0f)
+    {
+        MoveTowardsPlayer(); // Se diriger vers le joueur
+    }
+    else
+    {
+        // Se déplacer de manière aléatoire si pas en poursuite
+        randomTimer += Time.deltaTime;
+        if (randomTimer >= randomChangeInterval && !isPaused)
+        {
+            ChooseNewRandomDirection();
+            randomTimer = 0f;
+        }
+
+        HandleRandomMovement();
+    }
+
+    // Si l'ennemi est assez proche du joueur, commence l'attaque
+    if (Vector3.Distance(transform.position, enemyVision.player.position) <= 2f)
+    {
+        enemyAttack.Update();  // Appel de l'attaque du script EnemyAttack
+    }
+}
+
 
     void HandleRandomMovement()
 {

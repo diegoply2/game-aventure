@@ -39,40 +39,49 @@ public class AttaqueScript : MonoBehaviour
     }
 
     public void StartAttack()
+{
+    if (isAttacking) return; // Si déjà en train d'attaquer, on ne refait pas une nouvelle attaque
+    if (playerHealth != null && playerHealth.isAttacking) return; // Vérifier si le joueur est déjà en train d'attaquer
+
+    isAttacking = true;
+
+    if (playerHealth != null)
     {
-        if (isAttacking) return; // Si déjà en train d'attaquer, on ne refait pas une nouvelle attaque
-        if (playerHealth != null && playerHealth.isAttacking) return; // Vérifier si le joueur est déjà en train d'attaquer
-
-        isAttacking = true;
-
-        if (playerHealth != null)
-        {
-            playerHealth.isAttacking = true; // Marquer l'attaque dans PlayerHealth
-        }
-
-        string randomAttackAnimation = attackAnimations[Random.Range(0, attackAnimations.Count)];
-        animator.SetBool(randomAttackAnimation, true);
-        attackSoundScript?.PlayAttackSound();
-
-        if (sword != null)
-            sword.GetComponent<Collider>().enabled = true;
-
-        StartCoroutine(ResetAttackBoolAfterDelay(1f));
+        playerHealth.isAttacking = true; // Marquer l'attaque dans PlayerHealth
     }
+
+    string randomAttackAnimation = attackAnimations[Random.Range(0, attackAnimations.Count)];
+    animator.SetBool(randomAttackAnimation, true);
+    attackSoundScript?.PlayAttackSound();
+
+    if (sword != null)
+        sword.GetComponent<Collider>().enabled = true;
+
+    // Démarrer la coroutine pour terminer l'attaque après 1 seconde
+    StartCoroutine(ResetAttackBoolAfterDelay(1f));  // Délai de 1 seconde
+}
+
 
     private IEnumerator ResetAttackBoolAfterDelay(float delay)
+{
+    yield return new WaitForSeconds(delay);  // Attendre 1 seconde
+
+    isAttacking = false;
+
+    // Désactiver l'animation de l'attaque
+    animator.SetBool("Attack1", false);
+    animator.SetBool("Attack2", false);
+    animator.SetBool("Attack3", false);
+
+    // Désactiver le collider de l'épée
+    if (sword != null)
+        sword.GetComponent<Collider>().enabled = false;
+
+    if (playerHealth != null)
     {
-        yield return new WaitForSeconds(delay);
-        isAttacking = false;
-
-        if (sword != null)
-            sword.GetComponent<Collider>().enabled = false;
-
-        if (playerHealth != null)
-        {
-            playerHealth.isAttacking = false; // Réinitialiser l'état de l'attaque dans PlayerHealth
-        }
+        playerHealth.isAttacking = false; // Réinitialiser l'état de l'attaque dans PlayerHealth
     }
+}
 
     public void StopAttack()  // Nouvelle méthode pour arrêter l'attaque
     {
