@@ -10,9 +10,19 @@ public class EnemyVision : MonoBehaviour
     public bool playerInSight { get; private set; }
 
     void Start()
+{
+    // Recherche du joueur dans la scène au démarrage
+    GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+    if (playerObject != null)
     {
-        playerInSight = false;
+        player = playerObject.transform;
     }
+    else
+    {
+        Debug.LogWarning("Aucun joueur trouvé dans la scène avec le tag 'Player'.");
+    }
+}
+
 
     void Update()
     {
@@ -21,36 +31,38 @@ public class EnemyVision : MonoBehaviour
 
     void DetectPlayer()
 {
-    Vector3 directionToPlayer = player.position - transform.position;
+    GameObject player = GameObject.FindGameObjectWithTag("Player");
+
+    if (player == null)
+    {
+        playerInSight = false;
+        Debug.Log("Aucun joueur trouvé.");
+        return;
+    }
+
+    Vector3 directionToPlayer = player.transform.position - transform.position;
     float angleToPlayer = Vector3.Angle(directionToPlayer, transform.forward);
 
-    // Debugging: Affichage du rayon
     Debug.DrawRay(transform.position + Vector3.up * 1.5f, directionToPlayer.normalized * viewDistance, Color.red);
 
-    // Vérification si le joueur est dans le champ de vision de l'ennemi
-    if (angleToPlayer <= viewAngle / 2f && directionToPlayer.magnitude <= viewDistance)
+    if (angleToPlayer <= viewAngle / 2f)
     {
         RaycastHit hit;
-        if (Physics.Raycast(transform.position + Vector3.up * 1.5f, directionToPlayer.normalized, out hit, viewDistance))
+        if (Physics.Raycast(transform.position + Vector3.up * 1.5f, directionToPlayer.normalized, out hit, viewDistance, whatIsPlayer))
         {
-            if (hit.transform.CompareTag("Player"))  // Assurez-vous que le tag "Player" est bien appliqué sur le joueur
+            Debug.Log("Raycast touche : " + hit.transform.name);
+
+            if (hit.transform.CompareTag("Player"))
             {
-                if (!playerInSight)
-                {
-                    Debug.Log("Joueur détecté !");
-                }
-                playerInSight = true; // Le joueur est dans le champ de vision
+                playerInSight = true;
+                Debug.Log("Joueur détecté !");
                 return;
             }
         }
     }
 
-    // Si le joueur n'est plus dans le champ de vision
-    if (playerInSight)
-    {
-        playerInSight = false;
-        Debug.Log("Joueur hors de vue.");
-    }
+    playerInSight = false;
+    Debug.Log("Joueur hors de vue.");
 }
 
 }

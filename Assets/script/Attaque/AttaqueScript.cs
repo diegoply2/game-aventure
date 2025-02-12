@@ -40,21 +40,20 @@ public class AttaqueScript : MonoBehaviour
 
     public void StartAttack()
     {
-        if (isAttacking) return;
+        if (isAttacking) return; // Si déjà en train d'attaquer, on ne refait pas une nouvelle attaque
+        if (playerHealth != null && playerHealth.isAttacking) return; // Vérifier si le joueur est déjà en train d'attaquer
+
         isAttacking = true;
 
-        // Ajoutez ceci pour mettre à jour l'état de l'attaque
         if (playerHealth != null)
         {
-            playerHealth.isAttacking = true;
+            playerHealth.isAttacking = true; // Marquer l'attaque dans PlayerHealth
         }
 
         string randomAttackAnimation = attackAnimations[Random.Range(0, attackAnimations.Count)];
         animator.SetBool(randomAttackAnimation, true);
-
         attackSoundScript?.PlayAttackSound();
 
-        // Activer le collider de l'épée
         if (sword != null)
             sword.GetComponent<Collider>().enabled = true;
 
@@ -64,21 +63,14 @@ public class AttaqueScript : MonoBehaviour
     private IEnumerator ResetAttackBoolAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
-
-        animator.SetBool("Attack1", false);
-        animator.SetBool("Attack2", false);
-        animator.SetBool("Attack3", false);
-
         isAttacking = false;
 
-        // Désactiver le collider de l'épée après l'attaque
         if (sword != null)
             sword.GetComponent<Collider>().enabled = false;
 
-        // Réinitialiser l'état de l'attaque dans PlayerHealth
         if (playerHealth != null)
         {
-            playerHealth.isAttacking = false;
+            playerHealth.isAttacking = false; // Réinitialiser l'état de l'attaque dans PlayerHealth
         }
     }
 

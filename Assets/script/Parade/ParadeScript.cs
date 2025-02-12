@@ -34,10 +34,10 @@ public class ParadeScript : MonoBehaviour
 
         isParrying = true;
 
-        // Mettre à jour IsParrying dans PlayerHealth
+        // Mettre à jour isParrying dans PlayerHealth
         if (playerHealth != null)
         {
-            playerHealth.IsParrying = true; 
+            playerHealth.isParrying = true;  // Utilisation de isParrying dans PlayerHealth
         }
 
         // Désactiver le mouvement pendant la parade
@@ -59,10 +59,10 @@ public class ParadeScript : MonoBehaviour
 
         isParrying = false;
 
-        // Réinitialiser IsParrying dans PlayerHealth
+        // Réinitialiser isParrying dans PlayerHealth
         if (playerHealth != null)
         {
-            playerHealth.IsParrying = false;
+            playerHealth.isParrying = false;  // Réinitialisation de isParrying dans PlayerHealth
         }
 
         // Réactiver le mouvement après la parade
@@ -86,4 +86,3 @@ public class ParadeScript : MonoBehaviour
         }
     }
 }
-

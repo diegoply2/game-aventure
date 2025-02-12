@@ -24,6 +24,13 @@ public class EnemyParry : MonoBehaviour
         {
             Debug.LogError("Le script EnemyAttackSound n'est pas attaché à l'ennemi.");
         }
+
+        // Recherche du joueur par son tag "Player"
+        player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
+        {
+            Debug.LogError("Aucun objet avec le tag 'Player' trouvé dans la scène.");
+        }
     }
 
     // Cette méthode est appelée lorsque l'ennemi entre en contact avec le joueur

@@ -36,6 +36,10 @@ public class EnemyController : MonoBehaviour
 
     private bool isAttacking = false;
 
+    private Vector3 velocity;  // Variable pour la gestion de la vitesse, y compris la gravité
+    [SerializeField] private float gravity = -9.81f;  // Gravité appliquée à l'ennemi
+
+
 
     void Awake()
     {
@@ -71,126 +75,118 @@ public class EnemyController : MonoBehaviour
     }
 
     void Update()
-{
-    if (isDead)
     {
-        return; // Ne fait rien si l'ennemi est mort
-    }
-
-    // Si l'ennemi voit le joueur
-    if (enemyVision != null && enemyVision.playerInSight)
-    {
-        if (!isPursuing) // Si l'ennemi n'est pas déjà en poursuite
+        if (isDead)
         {
-            StartPursuing(); // Démarrer la poursuite
+            return; // Ne fais rien si l'ennemi est mort
         }
 
-        // Réinitialiser les timers de poursuite et de recherche après la perte de vue
-        pursueRemainingTime = pursueDuration;   // Réinitialise la durée de poursuite
-        pursuitTimerAfterLost = 0f;             // Réinitialise le temps de recherche après perte de vue
-    }
-    else
-    {
-        // Si l'ennemi perd de vue le joueur
-        if (isPursuing)
+        if (enemyVision != null && enemyVision.playerInSight)
         {
-            pursueRemainingTime -= Time.deltaTime; // Diminuer le temps de poursuite
-
-            if (pursueRemainingTime <= 0f) // Si le temps de poursuite est écoulé, arrête la poursuite
+            if (!isPursuing)
             {
-                StopPursuing();
+                StartPursuing();
             }
-        }
-
-        // Si l'ennemi ne voit plus le joueur et que le temps de recherche est écoulé
-        if (!enemyVision.playerInSight && pursueRemainingTime <= 0f)
-        {
-            // Continue de chercher le joueur pendant un certain temps
-            if (pursuitTimerAfterLost > 0f)
-            {
-                pursuitTimerAfterLost -= Time.deltaTime;
-                MoveTowardsPlayer();  // Déplacement pour continuer à chercher
-            }
-            else
-            {
-                // Si tout est écoulé, passe au mouvement aléatoire
-                HandleRandomMovement();
-            }
-        }
-    }
-
-    // Si l'ennemi est en poursuite, ou continue de chercher après la perte de vue, se déplacer vers le joueur
-    if (isPursuing || pursuitTimerAfterLost > 0f)
-    {
-        MoveTowardsPlayer(); // Se déplacer vers le joueur
-    }
-    else
-    {
-        randomTimer += Time.deltaTime;
-        if (randomTimer >= randomChangeInterval && !isPaused)
-        {
-            ChooseNewRandomDirection();
-            randomTimer = 0f;
-        }
-        HandleRandomMovement();  // Mouvement aléatoire
-    }
-}
-
-
-
-    void HandleRandomMovement()
-    {
-        if (isPaused)
-        {
-            // Si l'ennemi est en pause, décrémente le timer de la pause
-            pauseTimer -= Time.deltaTime;
-            if (pauseTimer <= 0f)
-            {
-                isPaused = false;  // Sortir de la pause lorsque le temps est écoulé
-                print("L'ennemi reprend son mouvement.");
-            }
-            return;  // Ne pas déplacer l'ennemi pendant la pause
-        }
-
-        // Vérifie si le CharacterController est activé avant de déplacer
-        if (characterController != null && characterController.enabled)
-        {
-            // Calculer la direction de mouvement en fonction de la direction du regard de l'ennemi
-            Vector3 forwardDirection = transform.forward;  // Utilise la direction avant de l'ennemi
-            Vector3 moveDirection = new Vector3(randomMovementDirection.x, 0f, randomMovementDirection.y).normalized;
-
-            // Assurez-vous que la direction arrière est bloquée, en ne permettant pas un mouvement en arrière
-            if (Vector3.Dot(forwardDirection, moveDirection) < 0f) // Si la direction de mouvement est en arrière
-            {
-                // Le mouvement doit être ajusté pour être soit sur le côté, soit vers l'avant
-                moveDirection = new Vector3(randomMovementDirection.x, 0f, Mathf.Max(0f, randomMovementDirection.y)).normalized;
-            }
-
-            // Lissage de la direction de mouvement
-            currentMovementDirection = Vector3.Lerp(currentMovementDirection, moveDirection, Time.deltaTime * 5f);  // Ajustez la valeur pour le lissage
-
-            // Déplacer l'ennemi en fonction de la direction
-            characterController.Move(currentMovementDirection * moveSpeed * Time.deltaTime);
-            UpdateAnimator(currentMovementDirection);
-
-            // Décider si l'ennemi doit faire une pause
-            if (Random.Range(0f, 1f) < 0.05f)  // 5% de chance de faire une pause à chaque mise à jour
-            {
-                StartPause();
-            }
-
-            // Rotation fluide : Faire tourner l'ennemi progressivement vers la direction du mouvement
-            if (currentMovementDirection != Vector3.zero)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(currentMovementDirection);  // Trouver la direction du mouvement
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);  // Rotation fluide
-            }
+            pursueRemainingTime = pursueDuration;  // Réinitialise le timer de poursuite dès que le joueur est vu
         }
         else
         {
-            Debug.LogWarning("CharacterController est désactivé. Impossible de déplacer l'ennemi.");
+            if (isPursuing && pursueRemainingTime > 0f)
+            {
+                pursueRemainingTime -= Time.deltaTime;
+                if (pursueRemainingTime <= 0)
+                {
+                    StopPursuing();
+                }
+            }
+
+            if (!enemyVision.playerInSight && pursueRemainingTime <= 0f && pursuitTimerAfterLost > 0f)
+            {
+                // Continue de poursuivre pendant un certain temps même après la perte du joueur
+                pursuitTimerAfterLost -= Time.deltaTime;
+                MoveTowardsPlayer();
+            }
+        }
+
+        if (isPursuing || pursuitTimerAfterLost > 0f)
+        {
+            MoveTowardsPlayer(); // Si en poursuite, se diriger vers le joueur
+        }
+        else
+        {
+            randomTimer += Time.deltaTime;
+            if (randomTimer >= randomChangeInterval && !isPaused)
+            {
+                ChooseNewRandomDirection();
+                randomTimer = 0f;
+            }
+
+            HandleRandomMovement();
+        }
+
+        // Si l'ennemi est à portée du joueur, lancer l'attaque
+        if (Vector3.Distance(transform.position, enemyVision.player.position) <= 2f)
+        {
+            enemyAttack.Update();  // Appel de l'attaque du script EnemyAttack
         }
     }
+
+    void HandleRandomMovement()
+{
+    if (isPaused)
+    {
+        // Si l'ennemi est en pause, décrémente le timer de la pause
+        pauseTimer -= Time.deltaTime;
+        if (pauseTimer <= 0f)
+        {
+            isPaused = false;  // Sortir de la pause lorsque le temps est écoulé
+            print("L'ennemi reprend son mouvement.");
+        }
+        return;  // Ne pas déplacer l'ennemi pendant la pause
+    }
+
+    // Vérifie si le CharacterController est activé avant de déplacer
+    if (characterController != null && characterController.enabled)
+    {
+        // Calculer la direction de mouvement en fonction de la direction du regard de l'ennemi
+        Vector3 forwardDirection = transform.forward;  // Utilise la direction avant de l'ennemi
+        Vector3 moveDirection = new Vector3(randomMovementDirection.x, 0f, randomMovementDirection.y).normalized;
+
+        // Assurez-vous que la direction arrière est bloquée, en ne permettant pas un mouvement en arrière
+        if (Vector3.Dot(forwardDirection, moveDirection) < 0f) // Si la direction de mouvement est en arrière
+        {
+            // Le mouvement doit être ajusté pour être soit sur le côté, soit vers l'avant
+            moveDirection = new Vector3(randomMovementDirection.x, 0f, Mathf.Max(0f, randomMovementDirection.y)).normalized;
+        }
+
+        // Lissage de la direction de mouvement
+        currentMovementDirection = Vector3.Lerp(currentMovementDirection, moveDirection, Time.deltaTime * 5f);  // Ajustez la valeur pour le lissage
+
+        // Fixe la position Y pour que l'ennemi reste toujours au sol
+        currentMovementDirection.y = 0f;
+
+        // Déplacer l'ennemi en fonction de la direction
+        characterController.Move(currentMovementDirection * moveSpeed * Time.deltaTime);
+        UpdateAnimator(currentMovementDirection);
+
+        // Décider si l'ennemi doit faire une pause
+        if (Random.Range(0f, 1f) < 0.05f)  // 5% de chance de faire une pause à chaque mise à jour
+        {
+            StartPause();
+        }
+
+        // Rotation fluide : Faire tourner l'ennemi progressivement vers la direction du mouvement
+        if (currentMovementDirection != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(currentMovementDirection);  // Trouver la direction du mouvement
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);  // Rotation fluide
+        }
+    }
+    else
+    {
+        Debug.LogWarning("CharacterController est désactivé. Impossible de déplacer l'ennemi.");
+    }
+}
 
     void ChooseNewRandomDirection()
     {
@@ -200,56 +196,93 @@ public class EnemyController : MonoBehaviour
 
     void StartPursuing()
     {
-        isPursuing = true; // Commencer la poursuite
-        pursuitTimerAfterLost = pursueDuration; // Définir la durée pendant laquelle l'ennemi continue de chercher
-        pursueRemainingTime = pursueDuration; // Réinitialiser la durée de poursuite
+        isPursuing = true;
         print("L'ennemi commence à vous poursuivre !");
     }
 
     void StopPursuing()
     {
-        isPursuing = false; // Arrêter la poursuite
-        pursuitTimerAfterLost = 0f; // Réinitialiser le timer de recherche après la perte de vue
+        isPursuing = false;
         print("L'ennemi arrête de vous poursuivre.");
     }
 
     void MoveTowardsPlayer()
 {
-    if (isDead) return;  // **Ajouté** : Vérifie si l'ennemi est mort avant de continuer
+    if (isDead || characterController == null || !characterController.enabled) return;  // Vérifie si l'ennemi est mort ou si le CharacterController est désactivé
 
-    if (characterController == null || !characterController.enabled) return;
-
-    if (enemyVision == null || enemyVision.player == null) return;
-
-    Vector3 directionToPlayer = (enemyVision.player.position - transform.position).normalized;
-
-    float distanceToPlayer = Vector3.Distance(transform.position, enemyVision.player.position);
-
-    if (distanceToPlayer <= 2f)
+    // Vérifie si le CharacterController est activé avant de déplacer
+    if (characterController != null && characterController.enabled)
     {
-        enemyAttack.Update();
-        return;
+        // Calculer la direction vers le joueur
+        Vector3 directionToPlayer = (enemyVision.player.position - transform.position).normalized;
+
+        // Fixer la position Y pour éviter tout mouvement vertical non désiré
+        directionToPlayer.y = 0f;  // Empêche le mouvement vertical
+
+        // Calculer la distance entre l'ennemi et le joueur
+        float distanceToPlayer = Vector3.Distance(transform.position, enemyVision.player.position);
+
+        // Si la distance est inférieure à 2 unités, l'ennemi est en combat et ne doit pas se déplacer
+        if (distanceToPlayer <= 2f)
+        {
+            // Appeler l'attaque sans mouvement
+            enemyAttack.Update();  // Lancer l'attaque ici
+            return;  // L'ennemi cesse de se déplacer à cette distance
+        }
+
+        // Si l'ennemi n'est pas à portée de combat, se déplacer vers le joueur
+        float currentSpeed = isPursuing ? pursuitSpeed : moveSpeed;
+
+        // Déplacer l'ennemi vers le joueur uniquement si la distance est suffisamment grande
+        if (distanceToPlayer > 2f)  // Empêche l'ennemi de continuer à se déplacer si déjà en combat
+        {
+            // Appliquer la gravité
+            ApplyGravity(); // Applique une force gravitationnelle (voir la fonction ApplyGravity ci-dessous)
+
+            characterController.Move(directionToPlayer * currentSpeed * Time.deltaTime);
+        }
+
+        // Si la direction vers le joueur est valide, effectuer une rotation fluide
+        if (directionToPlayer != Vector3.zero)
+        {
+            // Calculer la rotation nécessaire pour faire face au joueur
+            Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
+
+            // Appliquer la rotation fluide avec Quaternion.Slerp
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        }
+
+        UpdateAnimator(directionToPlayer);
     }
-
-    float currentSpeed = isPursuing ? pursuitSpeed : moveSpeed;
-
-    characterController.Move(directionToPlayer * currentSpeed * Time.deltaTime);
-
-    if (directionToPlayer != Vector3.zero)
+    else
     {
-        Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        Debug.LogWarning("CharacterController est désactivé. Impossible de déplacer l'ennemi.");
     }
-
-    UpdateAnimator(directionToPlayer);
 }
+
+// Appliquer la gravité manuellement
+void ApplyGravity()
+{
+    if (characterController.isGrounded) 
+    {
+        velocity.y = 0f; // Réinitialiser la vitesse verticale si l'ennemi est au sol
+    }
+    else
+    {
+        velocity.y += gravity * Time.deltaTime; // Appliquer la gravité (valeur à ajuster)
+    }
+
+    // Appliquer le mouvement vertical
+    characterController.Move(velocity * Time.deltaTime);
+}
+
 
 
     void StartPause()
     {
         isPaused = true;
         pauseTimer = Random.Range(minPauseDuration, maxPauseDuration);  // Pause aléatoire entre min et max
-        print("L'ennemi fait une pause pendant " + pauseTimer + " secondes.");
+        
     }
 
     void UpdateAnimator(Vector3 direction)

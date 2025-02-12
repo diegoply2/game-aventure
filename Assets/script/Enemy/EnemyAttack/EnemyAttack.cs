@@ -14,8 +14,8 @@ public class EnemyAttack : MonoBehaviour
     private Animator animator;
     private ParadeScript playerParadeScript;
 
-    private EnemyAttackSound EnemyAttackSound;
-    private EnemyAttackSound EnemyParrySound;
+    private EnemyAttackSound enemyAttackSound;
+    private EnemyAttackSound enemyParrySound;
 
     void Start()
     {
@@ -23,27 +23,28 @@ public class EnemyAttack : MonoBehaviour
         animator = GetComponent<Animator>();
         playerParadeScript = player.GetComponent<ParadeScript>();
 
-        EnemyAttackSound = GetComponent<EnemyAttackSound>();
-        EnemyParrySound = GetComponent<EnemyAttackSound>();
+        enemyAttackSound = GetComponent<EnemyAttackSound>();
+        enemyParrySound = GetComponent<EnemyAttackSound>();
     }
 
-    public void Update()
+    // Dans EnemyAttack.cs
+public void Update() // Changer ici la visibilité de Update()
+{
+    if (Vector3.Distance(transform.position, player.position) <= attackRange && !isAttacking)
     {
-        if (Vector3.Distance(transform.position, player.position) <= attackRange && !isAttacking)
-        {
-            StartCoroutine(AttackWithDelay());
-        }
-
-        // Si l'ennemi est en train de parer, jouer l'animation de parade
-        if (isParrying)
-        {
-            animator.SetBool("EnemyParry", true);
-        }
-        else
-        {
-            animator.SetBool("EnemyParry", false);
-        }
+        StartCoroutine(AttackWithDelay());
     }
+
+    // Si l'ennemi est en train de parer, jouer l'animation de parade
+    if (isParrying)
+    {
+        animator.SetBool("EnemyParry", true);
+    }
+    else
+    {
+        animator.SetBool("EnemyParry", false);
+    }
+}
 
     private IEnumerator AttackWithDelay()
     {
@@ -56,7 +57,7 @@ public class EnemyAttack : MonoBehaviour
             animator.SetBool("EnemyAttack", true);
         }
 
-        EnemyAttackSound?.EnemyPlayAttackSound();
+        enemyAttackSound?.EnemyPlayAttackSound();
 
         yield return new WaitForSeconds(1f);
 
@@ -65,14 +66,15 @@ public class EnemyAttack : MonoBehaviour
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
+                // Si le joueur parre, les dégâts sont réduits à 75%
                 if (playerParadeScript != null && playerParadeScript.isParrying && !playerHealth.isAttacking)
                 {
-                    playerHealth.TakeDamage(Random.Range(2f, 5f) * 0.75f, false);
-                    EnemyParrySound?.EnemyPlayParrySound();
+                    playerHealth.TakeDamage(Random.Range(2f, 8f) * 0.75f, false); // Réduction des dégâts
+                    enemyParrySound?.EnemyPlayParrySound();
                 }
                 else
                 {
-                    playerHealth.TakeDamage(Random.Range(2f, 5f), false);
+                    playerHealth.TakeDamage(Random.Range(2f, 8f), false); // Dégâts normaux
                 }
             }
         }
