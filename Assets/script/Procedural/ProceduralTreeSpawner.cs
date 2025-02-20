@@ -15,6 +15,7 @@ public class ProceduralTreeSpawner : MonoBehaviour
     private float lastUpdateTime = 0f;  // Temps de la dernière mise à jour
 
     public float minDistance = 30f;  // Distance minimale avant que les objets n'apparaissent
+    public float minSpawnDistance = 10f; // Distance minimale avant qu'un arbre ne soit généré autour du joueur
 
     void Start()
     {
@@ -149,7 +150,7 @@ public class ProceduralTreeSpawner : MonoBehaviour
         for (float angle = 0f; angle < 2 * Mathf.PI; angle += Mathf.PI / 10f)
         {
             // Position aléatoire autour du joueur
-            float distance = Random.Range(10f, spawnRadius); // Distance aléatoire entre 10 et spawnRadius
+            float distance = Random.Range(minSpawnDistance, spawnRadius); // Distance aléatoire entre minSpawnDistance et spawnRadius
             float xOffset = Mathf.Cos(angle) * distance;
             float zOffset = Mathf.Sin(angle) * distance;
 

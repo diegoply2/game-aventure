@@ -72,56 +72,41 @@ public class CharacterControllerWithCamera : MonoBehaviour
         SnapToGround();
     }
 
-    void Update()
+void Update()
+{
+    CheckGrounded(); // Utilise le Raycast pour une meilleure détection du sol
+
+    if (attackScript != null && attackScript.isAttacking || (parryScript != null && parryScript.isParrying))
     {
-        if (attackScript != null && attackScript.isAttacking || (parryScript != null && parryScript.isParrying))
-        {
-            smoothMoveInput = Vector2.zero; // Désactiver le mouvement pendant l'attaque ou la parade
-        }
-        else
-        {
-            moveInput = playerControls.Player.Move.ReadValue<Vector2>();
-            lookInput = playerControls.Player.Camera.ReadValue<Vector2>();
-            ApplyDeadzone(ref moveInput);
-
-            smoothMoveInput = Vector2.Lerp(smoothMoveInput, moveInput, 0.2f);
-            if (moveInput == Vector2.zero)
-                smoothMoveInput = Vector2.zero;
-        }
-
-        isGrounded = characterController.isGrounded;
-
-        if (!isRunning && !isJumping && moveInput == Vector2.zero && attackScript != null && !attackScript.isAttacking)
-        {
-            if (attackAction.triggered)
-            {
-                Attack();
-            }
-        }
-
-        MoveCharacter();
-        RotateCharacterWithCamera();
-
-        if (isGrounded)
-        {
-            velocity.y = -2f;
-            if (isJumping)
-            {
-                velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravityValue);
-                isJumping = false;
-                animator.SetBool("IsJumping", true);
-            }
-            animator.SetBool("IsJumping", false);
-        }
-        else
-        {
-            velocity.y += gravityValue * Time.deltaTime;
-            animator.SetBool("IsJumping", true);
-        }
-
-        characterController.Move(velocity * Time.deltaTime);
-        UpdateAnimations();
+        smoothMoveInput = Vector2.zero;
     }
+    else
+    {
+        moveInput = playerControls.Player.Move.ReadValue<Vector2>();
+        lookInput = playerControls.Player.Camera.ReadValue<Vector2>();
+        ApplyDeadzone(ref moveInput);
+
+        smoothMoveInput = Vector2.Lerp(smoothMoveInput, moveInput, 0.2f);
+        if (moveInput == Vector2.zero)
+            smoothMoveInput = Vector2.zero;
+    }
+
+    if (isGrounded)
+    {
+        velocity.y = -2f; // Garde le joueur collé au sol
+        animator.SetBool("IsJumping", false);
+    }
+    else
+    {
+        velocity.y += gravityValue * Time.deltaTime;
+        animator.SetBool("IsJumping", true);
+    }
+
+    characterController.Move(velocity * Time.deltaTime);
+    MoveCharacter();
+    RotateCharacterWithCamera();
+    UpdateAnimations();
+}
 
     void MoveCharacter()
     {
@@ -208,13 +193,15 @@ public class CharacterControllerWithCamera : MonoBehaviour
     }
 
     private void HandleJump()
+{
+    if (isGrounded && velocity.y <= 0f) // Vérifier que le joueur ne tombe pas déjà
     {
-        if (isGrounded)
-        {
-            isJumping = true;
-            animator.SetBool("IsJumping", true);
-        }
+        isJumping = true;
+        velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravityValue); // Appliquer la vélocité du saut
+        animator.SetBool("IsJumping", true);
     }
+}
+
 
     void Attack()
     {
@@ -271,4 +258,21 @@ public class CharacterControllerWithCamera : MonoBehaviour
             Debug.Log("Ennemi placé correctement sur le sol.");
         }
     }
+
+    void CheckGrounded()
+{
+    float extraHeight = 0.2f; // Ajuste cette valeur si besoin
+    RaycastHit hit;
+
+    if (Physics.Raycast(transform.position, Vector3.down, out hit, characterController.height / 2 + extraHeight))
+    {
+        isGrounded = true;
+    }
+    else
+    {
+        isGrounded = false;
+    }
+
+    animator.SetBool("IsJumping", !isGrounded);
+}
 }

@@ -77,6 +77,9 @@ private void Die()
     }
 
     // L'ennemi ne disparaît PAS et ne tombe plus à travers le sol !
+
+    Destroy(gameObject, 2f); // Détruit l'objet après 2 secondes
+
 }
 
 
