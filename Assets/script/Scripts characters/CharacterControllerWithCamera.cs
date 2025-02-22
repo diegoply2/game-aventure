@@ -11,6 +11,8 @@ public class CharacterControllerWithCamera : MonoBehaviour
     public float rotationSpeed = 700f; // Vitesse de rotation du personnage
     public float deadzone = 0.3f; // Valeur de la deadzone (vous pouvez ajuster cette valeur)
 
+    public float rightStickDeadzone = 0.3f; // Deadzone pour le joystick droit
+
     // Variables de caméra
     public Transform cameraTransform; // Référence à la caméra pour calculer le mouvement relatif
     private Vector2 moveInput; // Entrée du stick gauche pour les mouvements
@@ -21,7 +23,7 @@ public class CharacterControllerWithCamera : MonoBehaviour
     private Animator animator; // Référence à l'Animator
 
     // Variables pour le saut
-    public float jumpHeight = 2f; // Hauteur du saut
+    public float jumpHeight = 3.5f; // Hauteur du saut
     public float gravityValue = -9.81f; // Valeur de la gravité
     private bool isJumping = false; // Indicateur pour savoir si le personnage est en train de sauter
     private bool isGrounded; // Indicateur si le personnage est au sol
@@ -38,6 +40,9 @@ public class CharacterControllerWithCamera : MonoBehaviour
     private ParadeScript parryScript;
 
     public Transform Enemy;
+
+    private bool jumpRequested = false; // Booléen pour indiquer que le saut a été demandé
+
 
     void Awake()
     {
@@ -74,39 +79,65 @@ public class CharacterControllerWithCamera : MonoBehaviour
 
 void Update()
 {
-    CheckGrounded(); // Utilise le Raycast pour une meilleure détection du sol
-
     if (attackScript != null && attackScript.isAttacking || (parryScript != null && parryScript.isParrying))
     {
-        smoothMoveInput = Vector2.zero;
+        smoothMoveInput = Vector2.zero; // Désactiver le mouvement pendant l'attaque ou la parade
     }
     else
     {
         moveInput = playerControls.Player.Move.ReadValue<Vector2>();
         lookInput = playerControls.Player.Camera.ReadValue<Vector2>();
+
+        // Applique la deadzone au joystick gauche
         ApplyDeadzone(ref moveInput);
+
+        // Applique la deadzone au joystick droit (pour la rotation de la caméra)
+        ApplyDeadzone(ref lookInput, rightStickDeadzone);
 
         smoothMoveInput = Vector2.Lerp(smoothMoveInput, moveInput, 0.2f);
         if (moveInput == Vector2.zero)
             smoothMoveInput = Vector2.zero;
     }
 
+    isGrounded = characterController.isGrounded;
+
+    if (!isRunning && !isJumping && moveInput == Vector2.zero && attackScript != null && !attackScript.isAttacking)
+    {
+        if (attackAction.triggered)
+        {
+            Attack();
+        }
+    }
+
+    MoveCharacter();
+    RotateCharacterWithCamera();
+
+    // Gestion du saut uniquement quand la touche est pressée
     if (isGrounded)
     {
-        velocity.y = -2f; // Garde le joueur collé au sol
-        animator.SetBool("IsJumping", false);
+        velocity.y = -2f; // Empêche la dérive dans les airs si au sol
+
+        // Si le saut a été demandé (touche appuyée)
+        if (jumpRequested)
+        {
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravityValue); // Effectuer le saut
+            jumpRequested = false; // Réinitialiser l'état de demande de saut
+            animator.SetBool("IsJumping", true); // Activer l'animation de saut uniquement quand la touche est pressée
+        }
+        else
+        {
+            animator.SetBool("IsJumping", false); // Désactiver l'animation de saut quand au sol
+        }
     }
     else
     {
-        velocity.y += gravityValue * Time.deltaTime;
-        animator.SetBool("IsJumping", true);
+        velocity.y += gravityValue * Time.deltaTime; // Appliquer la gravité en l'air
     }
 
     characterController.Move(velocity * Time.deltaTime);
-    MoveCharacter();
-    RotateCharacterWithCamera();
     UpdateAnimations();
 }
+
 
     void MoveCharacter()
     {
@@ -142,31 +173,41 @@ void Update()
         }
     }
 
-    void UpdateAnimations()
+
+// Mise à jour des animations (si nécessaire)
+void UpdateAnimations()
+{
+    if (animator != null)
     {
-        if (animator != null)
+        // On récupère l'input de déplacement (vous pouvez utiliser moveInput ou smoothMoveInput selon vos besoins)
+        Vector2 move = moveInput; 
+        float moveX = move.x;
+        float moveY = move.y;
+
+        // Si le joueur bouge (pour éviter les interférences quand le stick est au repos)
+        if (move.magnitude > 0.1f)
         {
-            float moveX = smoothMoveInput.x;
-            float moveY = smoothMoveInput.y;
-            animator.SetFloat("MoveX", moveX);
-            animator.SetFloat("MoveY", moveY);
+            // On normalise la direction et on calcule le dot produit avec la direction "avant" (0,1)
+            Vector2 normalizedMove = move.normalized;
+            float dot = Vector2.Dot(normalizedMove, Vector2.up);
 
-            bool isMovingForward = moveY > 0.1f;
-            bool isMovingBackward = moveY < -0.1f;
-
-            if (isGrounded)
+            // Si le joystick est dirigé dans un cône de 45° autour de l'avant 
+            // (dot >= cos(45°) soit environ 0.707) et que la composante avant est trop faible,
+            // on la force à une valeur minimale (ici 0.45) pour déclencher l'animation "walk"
+            if (dot >= 0.707f && moveY < 0.45f)
             {
-                if (isMovingForward || isMovingBackward)
-                {
-                    animator.SetBool("IsRun", IsRun);
-                }
-                else
-                {
-                    animator.SetBool("IsRun", false);
-                }
+                moveY = 0.45f;
             }
         }
+
+        // On transmet les valeurs à l'Animator (le blend tree se charge de gérer l'animation "walk")
+        animator.SetFloat("MoveX", moveX);
+        animator.SetFloat("MoveY", moveY);
+
+        // L'animation "Run" se déclenche uniquement si le bouton "Run" est pressé (vérifié via isRunning)
+        animator.SetBool("IsRun", isRunning);
     }
+}
 
     private void StartRunning()
     {
@@ -180,28 +221,29 @@ void Update()
         IsRun = false;
     }
 
-    private void ApplyDeadzone(ref Vector2 input)
-    {
-        if (input.magnitude < deadzone)
-        {
-            input = Vector2.zero;
-        }
-        else
-        {
-            input = input.normalized * ((input.magnitude - deadzone) / (1 - deadzone));
-        }
-    }
-
-    private void HandleJump()
+// Modifiez la méthode ApplyDeadzone pour accepter un paramètre deadzone
+private void ApplyDeadzone(ref Vector2 input, float deadzone = 0.3f)
 {
-    if (isGrounded && velocity.y <= 0f) // Vérifier que le joueur ne tombe pas déjà
+    if (input.magnitude < deadzone)
     {
-        isJumping = true;
-        velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravityValue); // Appliquer la vélocité du saut
-        animator.SetBool("IsJumping", true);
+        input = Vector2.zero;
+    }
+    else
+    {
+        input = input.normalized * ((input.magnitude - deadzone) / (1 - deadzone));
     }
 }
 
+
+// Empêcher le saut si le bouton n'est pas enfoncé
+// Empêcher le saut si le bouton n'est pas enfoncé
+private void HandleJump()
+{
+    if (isGrounded && !isJumping)
+    {
+        jumpRequested = true; // Le saut est demandé uniquement lorsque "Jump" est appuyé
+    }
+}
 
     void Attack()
     {
@@ -258,21 +300,4 @@ void Update()
             Debug.Log("Ennemi placé correctement sur le sol.");
         }
     }
-
-    void CheckGrounded()
-{
-    float extraHeight = 0.2f; // Ajuste cette valeur si besoin
-    RaycastHit hit;
-
-    if (Physics.Raycast(transform.position, Vector3.down, out hit, characterController.height / 2 + extraHeight))
-    {
-        isGrounded = true;
-    }
-    else
-    {
-        isGrounded = false;
-    }
-
-    animator.SetBool("IsJumping", !isGrounded);
-}
 }

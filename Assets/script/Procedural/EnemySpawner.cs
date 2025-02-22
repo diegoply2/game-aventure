@@ -13,6 +13,8 @@ public class EnemySpawner : MonoBehaviour
     public int groupsPerWave = 3; // Nombre de groupes d'ennemis par vague
     public float minGroupDistance = 20f; // Distance minimale entre les groupes d'ennemis
 
+    public Terrain terrain; // Ajout de la référence explicite du terrain
+
     private Transform player;
     private List<Vector3> groupPositions = new List<Vector3>(); // Liste des positions des groupes
 
@@ -24,7 +26,13 @@ public class EnemySpawner : MonoBehaviour
             Debug.LogError("Aucun joueur trouvé avec le tag 'Player'.");
             return;
         }
-        
+
+        if (terrain == null)
+        {
+            Debug.LogError("Terrain n'est pas assigné.");
+            return;
+        }
+
         StartCoroutine(SpawnEnemyGroups());
     }
 
@@ -39,8 +47,7 @@ public class EnemySpawner : MonoBehaviour
 
     void SpawnEnemyWave()
     {
-        if (player == null || enemyPrefabs.Length == 0)
-            return;
+        // Continue normalement sans aucune vérification de limite d'ennemis
 
         groupPositions.Clear(); // Réinitialise les positions des groupes à chaque nouvelle vague
 
@@ -54,7 +61,7 @@ public class EnemySpawner : MonoBehaviour
             for (int j = 0; j < enemyCount; j++)
             {
                 Vector3 spawnPosition = spawnCenter + Random.insideUnitSphere * 3f;
-                spawnPosition.y = Terrain.activeTerrain.SampleHeight(spawnPosition);
+                spawnPosition.y = terrain.SampleHeight(spawnPosition); // Utilise le terrain assigné
                 GameObject enemy = Instantiate(enemyPrefabs[Random.Range(0, enemyPrefabs.Length)], spawnPosition, Quaternion.identity);
             }
         }
@@ -73,7 +80,7 @@ public class EnemySpawner : MonoBehaviour
             float zOffset = Mathf.Sin(angle) * distance;
 
             spawnPosition = new Vector3(player.position.x + xOffset, 0, player.position.z + zOffset);
-            spawnPosition.y = Terrain.activeTerrain.SampleHeight(spawnPosition);
+            spawnPosition.y = terrain.SampleHeight(spawnPosition); // Utilise le terrain assigné
 
             // Vérifie si le groupe est suffisamment éloigné des autres groupes
             isValidPosition = true;

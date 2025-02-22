@@ -17,21 +17,36 @@ public class MusicManager : MonoBehaviour
         PlayRandomTrackWithFade();
     }
 
-    void PlayRandomTrackWithFade()
+void PlayRandomTrackWithFade()
+{
+    if (musicTracks.Length == 0) return;
+
+    int randomIndex = Random.Range(0, musicTracks.Length);
+    audioSource.clip = musicTracks[randomIndex];
+
+    float upperBound = 0f;
+    // Si le clip est assez long, on choisit un point de départ aléatoire
+    // de manière à ce qu'il reste au moins 90 secondes avant la fin.
+    if (audioSource.clip.length > 90f)
     {
-        if (musicTracks.Length == 0) return;
-
-        int randomIndex = Random.Range(0, musicTracks.Length);
-        audioSource.clip = musicTracks[randomIndex];
-        audioSource.time = Random.Range(0f, audioSource.clip.length * 0.75f); // Commencer à un moment aléatoire
-        audioSource.Play();
-
-        // Fade-in de la musique dès le début du jeu
-        StartCoroutine(FadeIn(audioSource, initialFadeInDuration));
-
-        nextTrackTime = Random.Range(minTrackTime, maxTrackTime);
-        Invoke(nameof(FadeOutAndNextTrack), nextTrackTime);
+        // On calcule deux bornes : 
+        // - 75% de la longueur totale (pour respecter l'ancienne contrainte)
+        // - la longueur totale moins 90 secondes (pour être sûr qu'il reste au moins 90 sec)
+        upperBound = Mathf.Min(audioSource.clip.length * 0.75f, audioSource.clip.length - 90f);
     }
+    // Si le clip est trop court, on démarre dès le début (0f).
+    audioSource.time = Random.Range(0f, upperBound);
+
+    audioSource.Play();
+
+    // Fade-in dès le début
+    StartCoroutine(FadeIn(audioSource, initialFadeInDuration));
+
+    // Choix du moment pour la prochaine transition (reste inchangé)
+    nextTrackTime = Random.Range(minTrackTime, maxTrackTime);
+    Invoke(nameof(FadeOutAndNextTrack), nextTrackTime);
+}
+
 
     void FadeOutAndNextTrack()
     {

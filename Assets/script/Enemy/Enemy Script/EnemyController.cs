@@ -74,25 +74,26 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    void Update()
+void Update()
 {
     if (isDead)
     {
         return; // Ne fais rien si l'ennemi est mort
     }
 
-    // Si l'ennemi détecte le joueur, commence la poursuite
-    if (enemyVision != null && enemyVision.playerInSight)
+    // Déclenche la poursuite si le joueur est vu OU s'il est à moins de 12 mètres (détection auditive)
+    if (enemyVision != null && enemyVision.player != null &&
+       (enemyVision.playerInSight || Vector3.Distance(transform.position, enemyVision.player.position) <= 12f))
     {
         if (!isPursuing)
         {
             StartPursuing();
         }
-        pursueRemainingTime = pursueDuration;  // Réinitialise le timer de poursuite dès que le joueur est vu
+        pursueRemainingTime = pursueDuration;  // Réinitialise le timer de poursuite dès que le joueur est détecté
     }
     else
     {
-        // Si le joueur n'est plus en vue, réduire le temps de poursuite
+        // Si le joueur n'est plus détecté, réduire le temps de poursuite
         if (isPursuing && pursueRemainingTime > 0f)
         {
             pursueRemainingTime -= Time.deltaTime;
@@ -135,6 +136,7 @@ public class EnemyController : MonoBehaviour
         enemyAttack.Update();  // Appel de l'attaque du script EnemyAttack
     }
 }
+
 
 
     void HandleRandomMovement()

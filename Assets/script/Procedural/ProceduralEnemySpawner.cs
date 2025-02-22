@@ -10,7 +10,7 @@ public class ProceduralEnemySpawner : MonoBehaviour
     public float updateInterval = 1f;      // Intervalle entre chaque mise à jour de la génération des ennemis
     public int minEnemiesPerGroup = 2;     // Nombre minimum d'ennemis par groupe
     public int maxEnemiesPerGroup = 7;     // Nombre maximum d'ennemis par groupe
-    public int maxConcurrentEnemies = 20;  // Nombre maximum d'ennemis pouvant être présents en même temps
+    [SerializeField] public int maxConcurrentEnemies = 20;  // Nombre maximum d'ennemis pouvant être présents en même temps
 
     private Transform player;              // Le joueur
     private int currentEnemyCount = 0;     // Compteur pour suivre le nombre d'ennemis générés

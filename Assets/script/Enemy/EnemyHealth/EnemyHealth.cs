@@ -8,6 +8,8 @@ public class EnemyHealth : MonoBehaviour
     private bool isDead = false;
     private CharacterController characterController;  // Déclare la variable pour le CharacterController
 
+    
+
     void Start()
     {
         currentHealth = maxHealth;
@@ -75,6 +77,9 @@ private void Die()
     {
         enemyController.Die();  // Appelle la méthode Die() dans EnemyController
     }
+
+    // Ajoute le kill au compteur
+    KillCounter.instance.AddKill();
 
     // L'ennemi ne disparaît PAS et ne tombe plus à travers le sol !
 

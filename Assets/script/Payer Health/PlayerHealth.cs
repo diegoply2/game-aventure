@@ -5,10 +5,8 @@ public class PlayerHealth : MonoBehaviour
     public float maxHealth = 100f;
     public float currentHealth;
 
-    // Utilisation des propriétés pour isParrying et isAttacking
     public bool isParrying { get; set; }
-    public bool isAttacking = false;  // Correctement déclaré en tant que public ou avec une propriété
-  // Utilisation de la propriété 'isAttacking' au lieu de la variable publique
+    public bool isAttacking = false;
 
     private Animator animator;
     private CharacterControllerWithCamera characterController;
@@ -17,6 +15,9 @@ public class PlayerHealth : MonoBehaviour
     private PlayerControls playerControls;
 
     private HealthSliderUI healthSliderUI;
+
+    public GameObject gameOverCanvasPrefab; // Référence au prefab GameOverCanvas
+    private GameOverManager gameOverManager; // Référence au GameOverManager du prefab instancié
 
     void Start()
     {
@@ -36,6 +37,26 @@ public class PlayerHealth : MonoBehaviour
 
         playerControls = new PlayerControls();
         playerControls.Enable();
+
+        // Instancier le prefab GameOverCanvas
+        if (gameOverCanvasPrefab != null)
+        {
+            GameObject canvasInstance = Instantiate(gameOverCanvasPrefab);
+            canvasInstance.SetActive(false);  // Le canvas est désactivé au début
+            gameOverManager = canvasInstance.GetComponent<GameOverManager>();
+            if (gameOverManager != null)
+            {
+                Debug.Log("GameOverManager assigné avec succès.");
+            }
+            else
+            {
+                Debug.LogError("GameOverManager non trouvé dans le prefab !");
+            }
+        }
+        else
+        {
+            Debug.LogError("Le prefab GameOverCanvas n'est pas assigné dans le script !");
+        }
     }
 
     public void TakeDamage(float amount, bool isCritical)
@@ -67,6 +88,7 @@ public class PlayerHealth : MonoBehaviour
     private void PlayerDeath()
     {
         Debug.Log("Le joueur est mort !");
+
         if (animator != null)
         {
             animator.SetBool("IsDead", true);
@@ -91,6 +113,16 @@ public class PlayerHealth : MonoBehaviour
         {
             playerControls.Disable();
         }
+
+        // Si le GameOverManager a été trouvé, afficher l'écran Game Over
+        if (gameOverManager != null)
+        {
+            gameOverManager.ShowGameOverScreen();  // Afficher l'écran Game Over
+        }
+        else
+        {
+            Debug.LogError("GameOverManager est introuvable lors de la mort du joueur !");
+        }
     }
 
     public void RestoreHealth(float amount)
@@ -108,4 +140,4 @@ public class PlayerHealth : MonoBehaviour
 
         Debug.Log("Santé restaurée. Nouvelle santé : " + currentHealth);
     }
-} // ✅ Assure-toi que cette accolade ferme bien la classe
+}
